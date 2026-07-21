@@ -32,9 +32,21 @@ Personal Access Token を持つ `<server>` を設定すること（`<id>` は `p
 
 ### 2. 接続設定
 
-環境変数を設定するか、`src/main/resources/application.yml` を直接編集する。
+以下のいずれかで RaaS 接続情報を設定する。
+**実トークンを `application.yml` に直接書いてコミットしないこと**（このリポジトリは Public）。
 
-**環境変数（推奨）:**
+**方法A: local プロファイル（ローカル開発ではこちらを推奨）:**
+
+`src/main/resources/application-local.yml`（`.gitignore` 済み、コミットされない）を作成する。
+
+```yaml
+raas:
+  application: your-application-name
+  landscape: dev
+  token: your-system-token
+```
+
+**方法B: 環境変数:**
 
 ```bash
 export RAAS_APP=your-application-name
@@ -46,6 +58,10 @@ export FRONTEND_ORIGIN=http://localhost:5173  # CORS 許可オリジン（任意
 ### 3. アプリケーションの起動
 
 ```bash
+# 方法A（application-local.yml を使う場合）
+SPRING_PROFILES_ACTIVE=local mvn spring-boot:run
+
+# 方法B（環境変数を使う場合）
 mvn spring-boot:run
 ```
 
