@@ -12,7 +12,7 @@ Spring Boot を使用した RaaS バックエンドサンプル。
 
 ### 1. GitHub Packages の認証を設定する
 
-本サンプルは `raas-spring-boot-starter:1.0.12` を GitHub Packages
+本サンプルは `raas-spring-boot-starter:2.0.0` を GitHub Packages
 (`https://maven.pkg.github.com/SuTech-JP/raas-client`) から解決する（`pom.xml` に `<repositories>` 定義済み）。
 
 GitHub Packages からの取得には認証が必要。`~/.m2/settings.xml` に `read:packages` スコープの
@@ -71,15 +71,14 @@ mvn spring-boot:run
 
 | Method | Path | 説明 | 実装 |
 |--------|------|------|------|
-| `GET`  | `/raas/health` | ヘルスチェック | `@EnableRaasProxy`自動登録 |
 | `POST` | `/raas/report/session` | セッション発行（report） | `@EnableRaasProxy`自動登録 |
 | `POST` | `/raas/datatraveler/session` | セッション発行（datatraveler） | `@EnableRaasProxy`自動登録 |
+| `GET`  | `/raas/report/layout/:application/:schema` | レイアウト一覧取得 | `LayoutController`（独自実装） |
 | `GET`  | `/raas/report/result/:targetId` | CSVインポートログ取得（statusがFINISHなら詳細データも取得してマージ） | `ImportLogController`（独自実装） |
-| `GET`/`POST`/`PUT`/`DELETE` | `/raas/{*path}` | 汎用パススルー（例: `/raas/report/layouts/:application/:schema`） | `@EnableRaasProxy`自動登録 |
 
-`@EnableRaasProxy(baseUrl = "/raas")` の汎用パススルーは1リクエストをそのまま転送するだけなので、
-`/raas/report/result/:targetId`（条件分岐＋2回のAPI呼び出しをマージする処理）はこれだけでは実現できず、
-`ImportLogController` として個別に実装している。
+`@EnableRaasProxy(baseUrl = "/raas")` が自動登録するのはセッション発行の2経路だけ。
+それ以外のRaaS APIを画面から使う場合は、`RaasClient` を呼ぶコントローラーを個別に実装する
+（画面から受け取ったパスをそのままRaaSへ転送する経路は作らない）。
 
 ### エラーハンドリング
 
@@ -103,10 +102,10 @@ curl -X POST http://localhost:8080/raas/report/session \
   -d '{"backUrl": "https://your-app.example.com", "subUrl": "", "subDomain": ""}'
 ```
 
-**レイアウト一覧取得（汎用パススルー経由）:**
+**レイアウト一覧取得:**
 
 ```bash
-curl http://localhost:8080/raas/report/layouts/myapp/myschema
+curl http://localhost:8080/raas/report/layout/myapp/myschema
 ```
 
 **CSVインポートログ取得:**
@@ -126,18 +125,20 @@ raas-be-spring-sample/
     │   │   ├── RaasBeSpringSampleApplication.java  # @EnableRaasProxy(baseUrl = "/raas")
     │   │   ├── SampleSaasContextProvider.java       # テナント/ユーザーコンテキスト（サンプル用に固定値）
     │   │   ├── CorsConfig.java                      # CORS設定
+    │   │   ├── LayoutController.java                # レイアウト一覧取得（独自実装）
     │   │   ├── ImportLogController.java             # CSVインポートログ取得（独自実装）
     │   │   └── RaasExceptionHandler.java            # エラーハンドリング
     │   └── resources/
     │       └── application.yml                      # RaaS接続情報・ポート
     └── test/java/jp/co/sutech/raas/sample/
         ├── ImportLogControllerTest.java
+        ├── LayoutControllerTest.java
         └── RaasExceptionHandlerTest.java
 ```
 
 ## 独自エンドポイントを追加する場合
 
-`RaasClient` を `@Autowired` して独自の `@RestController` を書くこともできる（`raas-be-play-sample` の
+`RaasClient` を `@Autowired` して独自の `@RestController` を書く（`raas-be-play-sample` の
 `RaasController` と同じスタイル）。
 
 ```java
